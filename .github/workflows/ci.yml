@@ -1,13 +1,33 @@
-name: gitleaks
-on: [pull_request, push, workflow_dispatch]
+---
+name: "CI"
+on: ["pull_request", "push", "workflow_dispatch"] # yamllint disable-line rule:truthy rule:comments
 jobs:
-  scan:
-    name: gitleaks
-    runs-on: ubuntu-latest
+  linters:
+    name: "linters"
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - name: "Check out repository code"
+        uses: "actions/checkout@v4"
+      # TODO: Enable Ruff when the issues are fixed
+      # https://github.com/astral-sh/ruff-action/issues/256
+      # - name: "Ruff format"
+      #   uses: "astral-sh/ruff-action@v3"
+      #   with:
+      #     args: "format --check --diff"
+      #     version-file: "pyproject.toml"
+      # - name: "Ruff check"
+      #   uses: "astral-sh/ruff-action@v3"
+      #   with:
+      #     args: "check"
+      - name: "Yamllint"
+        uses: "karancode/yamllint-github-action@master"
+
+  scan:
+    name: "gitleaks"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out repository code"
+        uses: "actions/checkout@v4"
+      - uses: "gitleaks/gitleaks-action@v2"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
