@@ -3,7 +3,6 @@ name: "CI"
 on: ["pull_request", "push", "workflow_dispatch"] # yamllint disable-line rule:truthy rule:comments
 jobs:
   linters:
-    name: "linters"
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out repository code"
@@ -22,12 +21,29 @@ jobs:
       - name: "Yamllint"
         uses: "karancode/yamllint-github-action@master"
 
-  scan:
-    name: "gitleaks"
+  secrets-scan:
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out repository code"
         uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
       - uses: "gitleaks/gitleaks-action@v2"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+  vulnerabilities-scan:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out repository code"
+        uses: "actions/checkout@v4"
+      - name: "Install Syft & Grype"
+        run: |
+          curl -sSfL https://get.anchore.io/syft | sudo sh -s -- -b /usr/local/bin
+          curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
+      - name: "Generate SBOM with Syft"
+        run: |
+          syft scan . -o json > sbom.json
+      - name: "Scan for high vulnerabilities"
+        run: |
+          grype sbom:sbom.json --fail-on high
